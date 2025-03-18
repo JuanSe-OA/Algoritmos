@@ -1,346 +1,372 @@
-import pandas as pd
-import os
-import bibtexparser
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 import time
-import matplotlib.pyplot as plt
-import heapq
-import copy
-from fuzzywuzzy import fuzz
-from functools import cmp_to_key
-from bibtexparser.bwriter import BibTexWriter
+import os
+
+# Configurar Chrome para descargas automáticas
+download_path = "D:\\WorkSpaceVisualStudio\\Algoritmos\\automatizao"
 
 
+options = webdriver.ChromeOptions()
+# Habilitar descargas automáticas
+prefs = {
+    "download.default_directory": download_path,
+    "profile.default_content_setting_values.automatic_downloads": 1,  # Permite descargas automáticas
+    "download.prompt_for_download": False,  # No preguntar por ubicación de descarga
+    "download.directory_upgrade": True,  # Permitir cambios en el directorio de descarga
+    "safebrowsing.enabled": True  # Evita advertencias de descargas inseguras
+}
 
-def leer_bibtex(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        bib_database = bibtexparser.load(file)
-    return bib_database.entries
+options.add_experimental_option("prefs", prefs)
 
-def normalize_data(entries):
-    normalized = []
-    for entry in entries:
-        normalized.append({
-            'titulo': entry.get('title', '').strip().lower(),
-            'autor': entry.get('author', '').strip().lower(),
-            'year': entry.get('year', '').strip(),
-            'doi': entry.get('doi', '').strip(),
-            'raw_data': entry
-        })
-    return normalized
+# Iniciar el navegador con las opciones configuradas
+driver = webdriver.Chrome(options=options)
+driver.get("https://ieeexplore.ieee.org")  # Asegúrate de poner la URL correcta
 
-def buscar_duplicados(articles):
-    articulos_unicos = []
-    articulos_duplicados = []
-    vistos = {}
+# Abrir la página de la biblioteca
+driver.get("https://library.uniquindio.edu.co/")
+
+# Esperar y hacer clic en 'BASES DATOS x FACULTAD'
+wait = WebDriverWait(driver, 10)
+bases_facultad_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'BASES DATOS x FACULTAD')]")))
+bases_facultad_button.click()
+print("Se hizo clic en 'BASES DATOS x FACULTAD'.")
+
+# Esperar a que desaparezca el div de carga
+wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "onload-background")))
+
+# Clic en 'Fac. Ingeniería'
+fac_ingenieria_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//summary[@role='button'][.//div[@data-content-listing-item='fac-ingenier-a']]")))
+driver.execute_script("arguments[0].click();", fac_ingenieria_button)
+print("Se desplegaron las bases de datos de 'Fac. Ingeniería'.")
+
+# Obtener todos los enlaces de bases de datos
+database_links = driver.find_elements(By.XPATH, "//h3[@class='result-title']/a")
+
+# Buscar el enlace de ScienceDirect
+sciencedirect_link = None
+for link in database_links:
+    if "sciencedirect.com" in link.get_attribute("href").lower():
+        sciencedirect_link = link
+        break
+
+# Si se encuentra el enlace, hacer clic en él
+if sciencedirect_link:
+    driver.execute_script("arguments[0].click();", sciencedirect_link)
+    print("Se hizo clic en 'SCIENCEDIRECT - Consorcio Colombia'.")
+else:
+    print("No se encontró el enlace de ScienceDirect.")
+    driver.quit()
+    exit()
+
+# Esperar a que cargue la página de inicio de sesión de Google
+time.sleep(3)
+
+# Intentar hacer clic en "Acceder con Google"
+try:
+    google_button = driver.find_element(By.ID, "btn-google")
+    google_button.click()
+    print("Botón de Google presionado correctamente.")
+except Exception as e:
+    print("Error al hacer clic en el botón:", e)
+    driver.quit()
+    exit()
+
+# Esperar a que aparezca el campo del correo
+time.sleep(3)
+
+# Ingresar el correo electrónico
+try:
+    email_input = driver.find_element(By.ID, "identifierId")
+    email_input.send_keys("orlando.diazr@uqvirtual.edu.co")  # Reemplaza con tu correo
+    email_input.send_keys(Keys.ENTER)
+    print("Correo ingresado correctamente.")
+except Exception as e:
+    print("Error al ingresar el correo:", e)
+    driver.quit()
+    exit()
+
+# Esperar a que aparezca el campo de la contraseña
+time.sleep(3)
+
+# Ingresar la contraseña
+try:
+    password_input = driver.find_element(By.NAME, "Passwd")
+    password_input.send_keys("JUNIORDIAZ")  # Reemplaza con tu contraseña
+    password_input.send_keys(Keys.ENTER)
+    print("Contraseña ingresada correctamente.")
+except Exception as e:
+    print("Error al ingresar la contraseña:", e)
+    driver.quit()
+    exit()
+
+# Esperar a que cargue ScienceDirect después del login
+time.sleep(5)
+
+# BUSCAR "Computational Thinking" con comillas para filtrar resultados
+try:
+    search_box = wait.until(EC.presence_of_element_located((By.ID, "qs")))
+    search_box.send_keys('"Computational Thinking"')  # Agregar comillas para búsqueda exacta
+    search_box.send_keys(Keys.ENTER)
+    print("Búsqueda realizada correctamente.")
+except Exception as e:
+    print("No se pudo ingresar la búsqueda:", e)
+    driver.quit()
+    exit()
+
+# Esperar a que aparezcan los resultados
+time.sleep(5)
+
+# ===== PRIMER PASO: SELECCIONAR '100' RESULTADOS POR PÁGINA =====
+try:
+    boton_100 = wait.until(EC.element_to_be_clickable(
+        (By.XPATH, "//ol[contains(@class, 'ResultsPerPage')]//a[contains(@data-aa-name, 'srp-100-results-per-page')]")
+    ))
+    driver.execute_script("arguments[0].scrollIntoView();", boton_100)
+    driver.execute_script("arguments[0].click();", boton_100)
+    print("Se hizo clic en el botón '100'.")
+except Exception as e:
+    print("No se pudo hacer clic en el botón '100':", e)
+
+time.sleep(3)  # Esperar a que la página se actualice
+
+# ===== FUNCIÓN PARA PROCESAR UNA PÁGINA =====
+def procesar_pagina():
+    try:
+        time.sleep(3)  # Esperar carga
+
+        # SELECCIONAR TODOS LOS ARTÍCULOS
+        select_all_checkbox = wait.until(EC.presence_of_element_located((By.ID, "select-all-results")))
+        driver.execute_script("arguments[0].click();", select_all_checkbox)
+        print("Se seleccionaron todos los artículos.")
+
+        # EXPORTAR LOS ARTÍCULOS
+        export_button = wait.until(EC.element_to_be_clickable(
+            (By.XPATH, "//button[contains(@class, 'export-all-link-button')]")
+        ))
+        driver.execute_script("arguments[0].click();", export_button)
+        print(" Se hizo clic en el botón de exportar.")
+
+        # EXPORTAR A BIBTEX
+        time.sleep(2)
+        bibtex_button = wait.until(EC.element_to_be_clickable(
+            (By.XPATH, "//span[contains(text(), 'Export citation to BibTeX')]")
+        ))
+        driver.execute_script("arguments[0].click();", bibtex_button)
+        print("Se hizo clic en 'Export Citation to BibTeX'.")
+
+        # VERIFICAR DESCARGA
+        download_path = "D:\\WorkSpaceVisualStudio\\Algoritmos\\automatizao"
+        file_name = "sciencedirect_export.bib"
+        file_path = os.path.join(download_path, file_name)
+
+        time.sleep(5)  # Esperar descarga
+        if os.path.exists(file_path):
+            print(f"Archivo descargado correctamente: {file_path}")
+        else:
+            print("No se encontró el archivo descargado.")
+
+        # ===== CERRAR EL POPUP DESPUÉS DE LA DESCARGA =====
+        try:
+            close_button = wait.until(EC.element_to_be_clickable(
+                (By.XPATH, "//i[contains(@class, 'fa-times')]")
+            ))
+            driver.execute_script("arguments[0].click();", close_button)
+            print("Se cerró la ventana emergente.")
+            time.sleep(2)  # Pequeña pausa antes de continuar
+        except:
+            print("No se encontró el botón para cerrar el popup.")
+
+    except Exception as e:
+        print("Error al procesar la página:", e)
+
+# ===== BUCLE PARA REPETIR EL PROCESO EN CADA PÁGINA =====
+while True:
+    procesar_pagina()
+
+    # PASAR A LA SIGUIENTE PÁGINA SI EXISTE
+    try:
+        next_button = wait.until(EC.presence_of_element_located(
+            (By.XPATH, "//span[contains(@class, 'anchor-text') and text()='next']")
+        ))
+        driver.execute_script("arguments[0].scrollIntoView();", next_button)
+        driver.execute_script("arguments[0].click();", next_button)
+        print("Avanzando a la siguiente página...")
+
+        time.sleep(3)  # Esperar carga
+
+        # DESELECCIONAR TODO AL CARGAR LA NUEVA PÁGINA
+        select_all_checkbox = wait.until(EC.presence_of_element_located((By.ID, "select-all-results")))
+        driver.execute_script("arguments[0].click();", select_all_checkbox)
+        print("Se deseleccionaron los artículos de la nueva página.")
+
+        time.sleep(2)
+
+    except:
+        print("No hay más páginas. Finalizando el script.")
+        break  # Salir del bucle si no hay más páginas
+
+
+    #----------------------------------------
+
+# VOLVER AL MENÚ DE BASES DE DATOS
+
+try:
+    print("Regresando a la página de la biblioteca...")
+    driver.get("https://library.uniquindio.edu.co/")
+
+    # Esperar y hacer clic en 'BASES DATOS x FACULTAD' de nuevo
+    bases_facultad_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'BASES DATOS x FACULTAD')]")))
+    bases_facultad_button.click()
+    print("Se volvió a hacer clic en 'BASES DATOS x FACULTAD'.")
     
-    for article in articles:
-        key = (article['titulo'], article['autor'])
-        if any(fuzz.ratio(article['titulo'], existing[0]) > 90 for existing in vistos):
-            articulos_duplicados.append(article)
+    # Esperar a que desaparezca el div de carga
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "onload-background")))
+
+    # Clic en 'Fac. Ingeniería' nuevamente
+    fac_ingenieria_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//summary[@role='button'][.//div[@data-content-listing-item='fac-ingenier-a']]")))
+    driver.execute_script("arguments[0].click();", fac_ingenieria_button)
+    print("Se volvió a desplegar las bases de datos de 'Fac. Ingeniería'.")
+
+except Exception as e:
+    print(f"Error al regresar al menú de bases de datos: {e}")
+
+# Obtener todos los enlaces de bases de datos
+database_links = driver.find_elements(By.XPATH, "//h3[@class='result-title']/a")
+
+# Buscar el enlace de IEEE Xplore
+ieee_link = None
+for link in database_links:
+    if "ieeexplore" in link.get_attribute("href").lower():
+        ieee_link = link
+        break
+
+# Si se encuentra el enlace, hacer clic en él
+if ieee_link:
+    driver.execute_script("arguments[0].click();", ieee_link)
+    print("Se hizo clic en 'IEEE Xplore'.")
+else:
+    print("No se encontró el enlace de IEEE Xplore.")
+    driver.quit()
+    exit()
+
+# Esperar unos segundos para que cargue la página
+time.sleep(3)
+
+# Esperar a que la barra de búsqueda esté visible
+search_input = WebDriverWait(driver, 10).until(
+    EC.presence_of_element_located((By.CSS_SELECTOR, "input.Typeahead-input"))
+)
+
+# Ingresar el término de búsqueda
+search_input.send_keys('"Computational Thinking"') 
+print("Término de búsqueda ingresado correctamente.")
+
+# Esperar un momento y hacer clic en el botón de búsqueda
+time.sleep(1)
+search_button = driver.find_element(By.CSS_SELECTOR, "button.fa-search")
+search_button.click()
+print("Búsqueda realizada correctamente.")
+
+# Esperar unos segundos para que carguen los resultados
+time.sleep(3)
+
+while True:
+    try:
+        # Esperar a que aparezca la casilla de "Select All on Page"
+        select_all_checkbox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input.results-actions-selectall-checkbox"))
+        )
+
+        # Verificar si la casilla ya está marcada antes de hacer clic
+        if not select_all_checkbox.is_selected():
+            driver.execute_script("arguments[0].click();", select_all_checkbox)
+            print("Se seleccionaron todos los artículos.")
         else:
-            vistos[key] = True
-            articulos_unicos.append(article)
-    
-    return articulos_unicos, articulos_duplicados
+            print("Los artículos ya estaban seleccionados.")
 
+        # Esperar a que el botón "Export" esté presente y sea interactuable
+        export_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Export')]"))
+        )
+        driver.execute_script("arguments[0].click();", export_button)
+        print("Se hizo clic en el botón de Export.")
 
-def save_bibtex(filename, articles):
-    db = bibtexparser.bibdatabase.BibDatabase()
-    db.entries = [article['raw_data'] for article in articles]  # Mantiene el orden
+        # Esperar a que el botón "Citations" esté presente y sea interactuable
+        citations_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Citations')]"))
+        )
+        driver.execute_script("arguments[0].click();", citations_button)
+        print("Se hizo clic en el botón de Citations.")
 
-    # Usar BibTexWriter para controlar la salida
-    writer = BibTexWriter()
-    writer.order_entries_by = None  # Evita que BibTexWriter reordene los datos
-    writer.indent = '    '  # Formateo para mayor claridad
+        # Esperar a que el input de BibTeX esté presente
+        bibtex_radio = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//label[@for='download-bibtex']/input[@type='radio']"))
+        )
 
-    with open(filename, 'w', encoding='utf-8') as file:
-        file.write(writer.write(db))
+        driver.execute_script("arguments[0].scrollIntoView(true);", bibtex_radio)
+        time.sleep(1)  # Espera breve
 
+        driver.execute_script("arguments[0].click();", bibtex_radio)
+        print("Se seleccionó el formato BibTeX correctamente.")
 
+        time.sleep(2)
 
-def obtener_anio_valido(x):
-    return int(x['year'].strip()) if x['year'] and x['year'].strip().isdigit() else 9999
+        # Esperar a que el botón "Download" esté presente y sea clickeable
+        download_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'stats-SearchResults_Citation_Download')]"))
+        )
 
-def timsort(arr):
-    return sorted(arr, key=lambda x: (obtener_anio_valido(x), x['autor']))
+        time.sleep(2)  # Ajustar tiempo si es necesario
+        driver.execute_script("arguments[0].click();", download_button)
+        print("Se hizo clic en el botón 'Download'.")
 
-def quicksort(arr):
-    if len(arr) <= 1:
-        return arr
-    pivot = arr[len(arr) // 2]
-    left = [x for x in arr if (obtener_anio_valido(x), x['autor']) < (obtener_anio_valido(pivot), pivot['autor'])]
-    middle = [x for x in arr if (obtener_anio_valido(x), x['autor']) == (obtener_anio_valido(pivot), pivot['autor'])]
-    right = [x for x in arr if (obtener_anio_valido(x), x['autor']) > (obtener_anio_valido(pivot), pivot['autor'])]
-    return quicksort(left) + middle + quicksort(right)
+        time.sleep(2)
 
-def selection_sort(arr):
-    n = len(arr)
-    for i in range(n):
-        min_idx = i
-        for j in range(i + 1, n):
-            if (obtener_anio_valido(arr[j]), arr[j]['autor']) < (obtener_anio_valido(arr[min_idx]), arr[min_idx]['autor']):
-                min_idx = j
-        arr[i], arr[min_idx] = arr[min_idx], arr[i]
-    return arr
+        # Intentar cerrar el cuadro de diálogo presionando "Cancel" si aparece
+        try:
+            cancel_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'stats-download-citations-button-cancel')]"))
+            )
+            driver.execute_script("arguments[0].click();", cancel_button)
+            print("Se hizo clic en el botón 'Cancel'.")
+        except Exception:
+            print("No se encontró el botón 'Cancel', continuando...")
 
-def heap_sort(arr):
-    heap = []
-    for item in arr:
-        heapq.heappush(heap, (obtener_anio_valido(item), item['autor'], item))
-    return [heapq.heappop(heap)[2] for _ in range(len(heap))]
+        # Intentar hacer clic en el botón "Next" para pasar a la siguiente página
+        try:
+            next_button = WebDriverWait(driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'stats-Pagination_arrow_next')]"))
+            )
 
-def comb_sort(arr):
-    gap = len(arr)
-    shrink = 1.3
-    sorted_flag = False
+            # Verificar que el botón está habilitado antes de hacer clic
+            if next_button.is_enabled():
+                driver.execute_script("arguments[0].scrollIntoView();", next_button)
+                time.sleep(1)
+                driver.execute_script("arguments[0].click();", next_button)
+                print("Avanzando a la siguiente página...")
 
-    while not sorted_flag:
-        gap = int(gap / shrink)
-        if gap <= 1:
-            gap = 1
-            sorted_flag = True
-
-        for i in range(len(arr) - gap):
-            if (obtener_anio_valido(arr[i]), arr[i]['autor']) > (obtener_anio_valido(arr[i + gap]), arr[i + gap]['autor']):
-                arr[i], arr[i + gap] = arr[i + gap], arr[i]
-                sorted_flag = False
-    return arr
-
-def tree_sort(arr):
-    class Node:
-        def __init__(self, key):
-            self.left = self.right = None
-            self.val = key
-
-    def insert(root, key):
-        if root is None:
-            return Node(key)
-        if (obtener_anio_valido(key), key['autor']) < (obtener_anio_valido(root.val), root.val['autor']):
-            root.left = insert(root.left, key)
-        else:
-            root.right = insert(root.right, key)
-        return root
-
-    def inorder_traversal(root, sorted_list):
-        if root:
-            inorder_traversal(root.left, sorted_list)
-            sorted_list.append(root.val)
-            inorder_traversal(root.right, sorted_list)
-
-    if not arr:
-        return arr
-    root = None
-    for item in arr:
-        root = insert(root, item)
-    sorted_list = []
-    inorder_traversal(root, sorted_list)
-    return sorted_list
-##Funciona bien solo con potencias de dos
-def bitonic_sort(arr):
-    def compare_and_swap(arr, i, j, direction):
-        a, b = (obtener_anio_valido(arr[i]), arr[i]['autor']), (obtener_anio_valido(arr[j]), arr[j]['autor'])
-        if (direction == 1 and a > b) or (direction == 0 and a < b):
-            arr[i], arr[j] = arr[j], arr[i]
-
-    def bitonic_merge(arr, low, cnt, direction):
-        if cnt > 1:
-            k = cnt // 2
-            for i in range(low, low + k):
-                compare_and_swap(arr, i, i + k, direction)
-            bitonic_merge(arr, low, k, direction)
-            bitonic_merge(arr, low + k, k, direction)
-
-    def bitonic_sort_recursive(arr, low, cnt, direction):
-        if cnt > 1:
-            k = cnt // 2
-            bitonic_sort_recursive(arr, low, k, 1)  # Ascendente
-            bitonic_sort_recursive(arr, low + k, k, 0)  # Descendente
-            bitonic_merge(arr, low, cnt, direction)
-
-    n = len(arr)
-    if n <= 1:
-        return arr  # Lista vacía o con un solo elemento ya está ordenada
-
-    bitonic_sort_recursive(arr, 0, n, 1)
-    return arr
-
-
-
-
-def gnome_sort(arr):
-    index = 0
-    while index < len(arr):
-        if index == 0 or (obtener_anio_valido(arr[index]), arr[index]['autor']) >= (obtener_anio_valido(arr[index - 1]), arr[index - 1]['autor']):
-            index += 1
-        else:
-            arr[index], arr[index - 1] = arr[index - 1], arr[index]
-            index -= 1
-    return arr
-
-def binary_insertion_sort(arr):
-    for i in range(1, len(arr)):
-        key = arr[i]
-        left, right = 0, i - 1
-        while left <= right:
-            mid = (left + right) // 2
-            if (obtener_anio_valido(arr[mid]), arr[mid]['autor']) > (obtener_anio_valido(key), key['autor']):
-                right = mid - 1
+                # Esperar que la nueva página cargue completamente
+                time.sleep(5)
             else:
-                left = mid + 1
-        arr = arr[:left] + [key] + arr[left:i] + arr[i+1:]
-    return arr
+                print("El botón 'Next' está deshabilitado. Finalizando el proceso.")
+                break
 
-def radix_sort(arr):
-    if not arr:
-        return arr
+        except Exception:
+            print("No se encontró el botón 'Next'. Terminando...")
+            break
 
-    # Obtener el valor máximo de año
-    max_anio = max(obtener_anio_valido(item) for item in arr)
-    exp = 1
+    except Exception as e:
+        print("Error general en el proceso:", e)
+        break  # Salir del bucle si ocurre un error crítico
 
-    # Ordenar por año usando Radix Sort
-    while max_anio // exp > 0:
-        buckets = [[] for _ in range(10)]
-        for item in arr:
-            num = obtener_anio_valido(item)
-            digit_value = (num // exp) % 10
-            buckets[digit_value].append(item)
-        arr = [item for bucket in buckets for item in bucket]
-        exp *= 10
+print("Descarga completada.")
 
-    arr = sorted(arr, key=lambda x: (obtener_anio_valido(x), x['autor']))
-    
-    return arr
-
-
-
-def pigeonhole_sort(arr):
-    min_anio = min(obtener_anio_valido(x) for x in arr)
-    max_anio = max(obtener_anio_valido(x) for x in arr)
-
-    size = max_anio - min_anio + 1
-    holes = [[] for _ in range(size)]
-
-    for item in arr:
-        holes[obtener_anio_valido(item) - min_anio].append(item)
-
-    sorted_arr = []
-    for hole in holes:
-        sorted_arr.extend(sorted(hole, key=lambda x: x['autor']))
-    return sorted_arr
-
-def bucket_sort(arr):
-    min_anio = min(obtener_anio_valido(x) for x in arr)
-    max_anio = max(obtener_anio_valido(x) for x in arr)
-    num_buckets = len(arr)
-    buckets = [[] for _ in range(num_buckets)]
-
-    for item in arr:
-        index = int((obtener_anio_valido(item) - min_anio) * (num_buckets - 1) / (max_anio - min_anio)) if max_anio > min_anio else 0
-        buckets[index].append(item)
-
-    sorted_arr = []
-    for bucket in buckets:
-        sorted_arr.extend(sorted(bucket, key=lambda x: (obtener_anio_valido(x), x['autor'])))
-    return sorted_arr
-
-
-
-def ordenar_y_medicion(articles, metodo):
-    start_time = time.time()
-    metodos = {
-        'timsort': timsort,
-        'quicksort': quicksort,
-        'selection_sort': selection_sort,
-        'heap_sort': heap_sort,
-        'comb_sort': comb_sort,
-        'tree_sort': tree_sort,
-        'pigeonhole_sort': pigeonhole_sort,
-        'bucket_sort': bucket_sort,
-        'bitonic_sort': bitonic_sort,
-        'gnome_sort': gnome_sort,
-        'binary_insertion_sort': binary_insertion_sort,
-        'radix_sort': radix_sort
-    }
-    
-    if metodo not in metodos:
-        raise ValueError(f"Método de ordenamiento '{metodo}' no reconocido.")
-    
-    sorted_articles = metodos[metodo](copy.deepcopy(articles))  # Copia profunda
-    end_time = time.time()
-    return sorted_articles, end_time - start_time
-
-def graficar_tiempos(mediciones, num_articles):
-    metodos = list(mediciones.keys())
-    tiempos = list(mediciones.values())
-
-    # Lista de colores para cada algoritmo
-    colores = [
-        'blue', 'green', 'red', 'purple', 'orange', 'yellow', 'cyan', 'magenta', 
-        'gray', 'brown', 'pink', 'lime'
-    ]
-
-    # Asegurar que haya suficientes colores
-    while len(colores) < len(metodos):
-        colores.extend(colores)  # Repetir colores si hay más métodos que colores
-
-    plt.figure(figsize=(12, 6))
-    plt.bar(metodos, tiempos, color=colores[:len(metodos)])  # Usar 'color' en lugar de 'colores'
-    plt.xlabel('Método de Ordenamiento')
-    plt.ylabel('Tiempo (s)')
-    plt.title(f'Comparación de Tiempos de Ordenamiento ({num_articles} artículos)')
-    plt.xticks(rotation=45, ha='right')  # Rotar etiquetas para mejor visibilidad
-    plt.show()
-
-def main(folder_path, num_articles):
-    all_articles = []
-
-    # Leer los archivos .bib
-    for file in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, file)
-        if file.endswith('.bib'):
-            entries = leer_bibtex(file_path)
-            all_articles.extend(normalize_data(entries))
-
-    # Buscar duplicados
-    articulos_unicos, articulos_duplicados = buscar_duplicados(all_articles)
-
-    ##Si el usuario quiere ordenar todos los articulos
-    if num_articles <= 0 or num_articles > len(articulos_unicos):
-        num_articles = len(articulos_unicos) 
-
-    # Limitar la cantidad de artículos a ordenar
-    articulos_unicos = articulos_unicos[:num_articles]  # Solo usa los primeros 'num_articles'
-
-    # Medir tiempos de ordenamiento
-    metodos = ['comb_sort', 'tree_sort', 'pigeonhole_sort', 'bucket_sort', 'bitonic_sort', 
-               'gnome_sort', 'binary_insertion_sort', 'radix_sort', 'timsort', 'quicksort', 
-               'selection_sort', 'heap_sort']
-    
-    mediciones = {}
-    for metodo in metodos:
-        articulos_a_ordenar = articulos_unicos[:]  # Se hace una copia para cada algoritmo
-        _, tiempo = ordenar_y_medicion(articulos_a_ordenar, metodo)
-        mediciones[metodo] = tiempo
-
-    # Graficar los tiempos
-    graficar_tiempos(mediciones, num_articles)
-
-    # Aplicar el ordenamiento final antes de guardar
-    articulos_unicos = timsort(articulos_unicos)  # Puedes cambiarlo por otro método
-        ##articulos_ordenados = bitonic_sort(articulos_unicos)
-    #print("\nDespués de ordenar:")
-    #for art in articulos_ordenados:
-    #    print(obtener_anio_valido(art), "-", art['autor'])
-    # Guardar archivos ordenados
-    save_bibtex('articulos_unificados.bib', articulos_unicos)
-    save_bibtex('articulos_duplicados.bib', articulos_duplicados)
-
-    print(f"Procesamiento completado con {num_articles} artículos ordenados.")
-    print("- articulos_unificados.bib (artículos sin duplicados)")
-    print("- articulos_duplicados.bib (artículos repetidos)")
-
-if __name__ == "__main__":
-    folder_path = input("Ingrese la ruta de la carpeta con los archivos: ")
-    num_articles = int(input("Ingrese la cantidad de artículos a ordenar: "))  # Pedir la cantidad de artículos
-    main(folder_path, num_articles)
+# Cerrar el navegador cuando el usuario lo decida
+input("Presiona Enter para cerrar el navegador...")
+driver.quit()
