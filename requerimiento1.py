@@ -106,6 +106,8 @@ def comb_sort(arr):
                 sorted_flag = False
     return arr
 
+
+
 def tree_sort(arr):
     class Node:
         def __init__(self, key):
@@ -135,6 +137,8 @@ def tree_sort(arr):
     sorted_list = []
     inorder_traversal(root, sorted_list)
     return sorted_list
+
+
 ##Funciona bien solo con potencias de dos
 def bitonic_sort(arr):
     def compare_and_swap(arr, i, j, direction):
@@ -176,6 +180,7 @@ def gnome_sort(arr):
             arr[index], arr[index - 1] = arr[index - 1], arr[index]
             index -= 1
     return arr
+
 
 def binary_insertion_sort(arr):
     for i in range(1, len(arr)):
