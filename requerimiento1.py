@@ -26,10 +26,12 @@ options.add_experimental_option("prefs", prefs)
 
 # Iniciar el navegador con las opciones configuradas
 driver = webdriver.Chrome(options=options)
-driver.get("https://ieeexplore.ieee.org")  # Asegúrate de poner la URL correcta
 
 # Abrir la página de la biblioteca
 driver.get("https://library.uniquindio.edu.co/")
+
+close_button = driver.find_element(By.CSS_SELECTOR, ".reveal-overlay .close-button")
+close_button.click()
 
 # Esperar y hacer clic en 'BASES DATOS x FACULTAD'
 wait = WebDriverWait(driver, 10)
@@ -105,8 +107,11 @@ except Exception as e:
     driver.quit()
     exit()
 
+
 # Esperar a que cargue ScienceDirect después del login
 time.sleep(5)
+
+"""""
 
 # BUSCAR "Computational Thinking" con comillas para filtrar resultados
 try:
@@ -135,7 +140,7 @@ except Exception as e:
 
 time.sleep(3)  # Esperar a que la página se actualice
 
-# ===== FUNCIÓN PARA PROCESAR UNA PÁGINA =====
+# FUNCIÓN PARA PROCESAR UNA PÁGINA
 def procesar_pagina():
     try:
         time.sleep(3)  # Esperar carga
@@ -171,21 +176,21 @@ def procesar_pagina():
         else:
             print("No se encontró el archivo descargado.")
 
-        # ===== CERRAR EL POPUP DESPUÉS DE LA DESCARGA =====
+        # CERRAR EL POPUP DESPUÉS DE LA DESCARGA
         try:
             close_button = wait.until(EC.element_to_be_clickable(
                 (By.XPATH, "//i[contains(@class, 'fa-times')]")
             ))
             driver.execute_script("arguments[0].click();", close_button)
             print("Se cerró la ventana emergente.")
-            time.sleep(2)  # Pequeña pausa antes de continuar
+            time.sleep(2)  
         except:
             print("No se encontró el botón para cerrar el popup.")
 
     except Exception as e:
         print("Error al procesar la página:", e)
 
-# ===== BUCLE PARA REPETIR EL PROCESO EN CADA PÁGINA =====
+# BUCLE PARA REPETIR EL PROCESO EN CADA PÁGINA
 while True:
     procesar_pagina()
 
@@ -214,11 +219,18 @@ while True:
 
     #----------------------------------------
 
+"""
+
 # VOLVER AL MENÚ DE BASES DE DATOS
+
 
 try:
     print("Regresando a la página de la biblioteca...")
     driver.get("https://library.uniquindio.edu.co/")
+
+    
+    close_button = driver.find_element(By.CSS_SELECTOR, ".reveal-overlay .close-button")
+    close_button.click()
 
     # Esperar y hacer clic en 'BASES DATOS x FACULTAD' de nuevo
     bases_facultad_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'BASES DATOS x FACULTAD')]")))
@@ -315,6 +327,17 @@ while True:
         driver.execute_script("arguments[0].click();", bibtex_radio)
         print("Se seleccionó el formato BibTeX correctamente.")
 
+        time.sleep(4)
+
+
+
+        label = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//label[contains(., 'Citation and Abstract')]"))
+        )
+        label.click()
+       
+
+
         time.sleep(2)
 
         # Esperar a que el botón "Download" esté presente y sea clickeable
@@ -328,7 +351,7 @@ while True:
 
         time.sleep(2)
 
-        # Intentar cerrar el cuadro de diálogo presionando "Cancel" si aparece
+        # cerrar el cuadro de diálogo presionando "Cancel" si aparece
         try:
             cancel_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'stats-download-citations-button-cancel')]"))
@@ -338,7 +361,7 @@ while True:
         except Exception:
             print("No se encontró el botón 'Cancel', continuando...")
 
-        # Intentar hacer clic en el botón "Next" para pasar a la siguiente página
+        # hacer clic en el botón "Next" para pasar a la siguiente página
         try:
             next_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'stats-Pagination_arrow_next')]"))
