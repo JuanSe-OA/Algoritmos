@@ -1,6 +1,5 @@
 import os
 import time
-import matplotlib.pyplot as plt
 import copy
 from timsort import TimSort
 from quicksort import QuickSort
@@ -14,7 +13,7 @@ from binary_insertion_sort import BinaryInsertionSort
 from radix_sort import RadixSort
 from pigeonhole_sort import PigeonholeSort
 from bucket_sort import BucketSort
-from utils import leer_bibtex, normalize_data, save_bibtex, obtener_anio_valido, buscar_duplicados
+from utils import leer_bibtex, normalize_data, save_bibtex,buscar_duplicados,graficar_tiempos,generar_estadisticas_desde_bib
 
 def ordenar_y_medicion(articles, metodo_instancia):
     """Mide el tiempo de ejecución de un método de ordenamiento"""
@@ -23,27 +22,7 @@ def ordenar_y_medicion(articles, metodo_instancia):
     end_time = time.time()
     return sorted_articles, end_time - start_time
 
-def graficar_tiempos(mediciones, num_articles):
-    """Genera gráfico de comparación de tiempos"""
-    metodos = list(mediciones.keys())
-    tiempos = list(mediciones.values())
 
-    plt.figure(figsize=(12, 6))
-    bars = plt.bar(metodos, tiempos)
-    plt.xlabel('Método de Ordenamiento')
-    plt.ylabel('Tiempo (s)')
-    plt.title(f'Comparación de Tiempos ({num_articles} artículos)')
-    plt.xticks(rotation=45, ha='right')
-    
-    # Añadir valores en las barras
-    for bar in bars:
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2., height,
-                f'{height:.6f}',
-                ha='center', va='bottom')
-    
-    plt.tight_layout()
-    plt.show()
 
 def main(folder_path, num_articles):
     # Leer y procesar archivos
@@ -91,6 +70,9 @@ def main(folder_path, num_articles):
     # Filtrar None antes de guardar duplicados
     duplicados_validos = [d for d in articulos_duplicados if d is not None]
     save_bibtex('articulos_duplicados.bib', duplicados_validos)
+
+    #Generar_estadisticas
+    generar_estadisticas_desde_bib(articulos_unicos)
 
     print(f"\nProcesamiento completado. Artículos ordenados: {num_articles}")
     print(f"- Total métodos evaluados: {len(metodos)}")
