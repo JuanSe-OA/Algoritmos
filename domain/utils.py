@@ -89,4 +89,26 @@ def graficar_tiempos(mediciones, num_articles):
     
     plt.tight_layout()
     plt.show()
+    
+
+def extraer_abstracts_bibtex(ruta):
+    with open(ruta, 'r', encoding='utf-8') as bibtex_file:
+        bib_database = bibtexparser.load(bibtex_file)
+
+    abstracts = []
+    etiquetas = []
+
+    for entry in bib_database.entries:
+        if 'abstract' in entry:
+            abstracts.append(entry['abstract'])
+
+            # Intenta usar keywords, si no hay, intenta con el título, o marca como Desconocido
+            keyword = entry.get('keywords', '').strip()
+            if keyword:
+                etiquetas.append(keyword)
+            else:
+                etiquetas.append(entry.get('title', 'Desconocido')[:30])  # Usa título recortado
+
+    return abstracts, etiquetas
+
 

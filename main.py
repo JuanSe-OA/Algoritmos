@@ -7,9 +7,15 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Sube un nivel y a
 
 # Importaciones del proyecto
 from Algoritmos.domain.metodos_ordenamiento import *
-from Algoritmos.domain.utils import leer_bibtex, normalize_data, save_bibtex, buscar_duplicados, graficar_tiempos
+from Algoritmos.domain.utils import leer_bibtex, normalize_data, save_bibtex, buscar_duplicados, graficar_tiempos,extraer_abstracts_bibtex
 from Algoritmos.domain.requerimientos import requerimiento2, requerimiento3
-
+from Algoritmos.domain.agrupamiento.preprocesamiento import procesar_abstracts
+from Algoritmos.domain.agrupamiento.similitud import calcular_matriz_similitud
+from Algoritmos.domain.agrupamiento.dendograma import ClusteringJerarquico
+from Algoritmos.domain.agrupamiento.clustering_algoritmos import (
+    SingleLinkageClustering,
+    CompleteLinkageClustering
+)
 
 def ordenar_y_medicion(articles, metodo_instancia):
     """Mide el tiempo de ejecución de un método de ordenamiento"""
@@ -19,7 +25,7 @@ def ordenar_y_medicion(articles, metodo_instancia):
     return sorted_articles, end_time - start_time
 
 
-
+#MAIN CON LA IMPLEMETANCIÓN DEL REQUERIMIENTO 1 HASTA EL 3*
 """def main(folder_path, num_articles):
     # Leer y procesar archivos
     all_articles = []
@@ -88,6 +94,8 @@ if __name__ == "__main__":
     main(folder, cantidad)
 """
 
+#MAIN CON LOS REQUERIMIENTOS DEL 2 Y 3, SIN USO DEL BOT
+""""
 def main(ruta_archivo_unificado):
     # Leer y procesar el archivo de artículos unificados
     if not os.path.exists(ruta_archivo_unificado):
@@ -103,13 +111,59 @@ def main(ruta_archivo_unificado):
     r2.mostrar_resultados()
 
     # Requerimiento 3
-    r3 = requerimiento3('articulos_unificados.bib')
+    r3 = requerimiento3(ruta_archivo_unificado)
     r3.analizar_frecuencias()
     r3.guardar_csv_frecuencias()
     r3.generar_nube_palabras()
     r3.generar_grafico_coocurrencia()
-
+    
 if __name__ == "__main__":
     print("=== SISTEMA DE PROCESAMIENTO DE ARTÍCULOS UNIFICADOS ===")
     ruta = input("Ingrese la ruta completa del archivo .bib con los artículos unificados: ")
     main(ruta)
+"""
+#MAIN SEGUIMIENTO 2
+
+
+def main():
+    ruta_bibtex = input("Ingrese la ruta completa del archivo .bib con los artículos unificados: ").strip()
+
+    if not os.path.exists(ruta_bibtex):
+        print("❌ Error: La ruta al archivo .bib no es válida.")
+        return
+
+    # Extraer abstracts y etiquetas
+    abstracts, etiquetas = extraer_abstracts_bibtex(ruta_bibtex)
+    if not abstracts:
+        print("❌ No se encontraron abstracts.")
+        return
+
+    print(f"✅ {len(abstracts)} abstracts encontrados.")
+
+    # Limitar a 100 por rendimiento
+    if len(abstracts) > 100:
+        print("⚠️ Solo se procesarán los primeros 100 abstracts por rendimiento.")
+    textos_procesados = procesar_abstracts(abstracts[:50])
+    etiquetas_procesadas = etiquetas[:50]
+
+    # Calcular matriz de similitud
+    matriz_similitud = calcular_matriz_similitud(textos_procesados)
+
+    # Clustering jerárquico - Single Linkage
+    print("\n🔗 Clustering usando SINGLE linkage")
+    clustering_single = SingleLinkageClustering()
+    linkage_single = clustering_single.fit(matriz_similitud)
+    clustering_s = ClusteringJerarquico(matriz_similitud, etiquetas_procesadas)
+    clustering_s.graficar_dendrograma(linkage_single, "Dendrograma - Single Linkage")
+
+    # Clustering jerárquico - Complete Linkage
+    print("\n🔗 Clustering usando COMPLETE linkage")
+    clustering_complete = CompleteLinkageClustering()
+    linkage_complete = clustering_complete.fit(matriz_similitud)
+    clustering_c = ClusteringJerarquico(matriz_similitud, etiquetas_procesadas)
+    clustering_c.graficar_dendrograma(linkage_complete, "Dendrograma - Complete Linkage")
+
+
+if __name__ == "__main__":
+    print("=== AGRUPAMIENTO JERÁRQUICO DE ABSTRACTS ===")
+    main()
