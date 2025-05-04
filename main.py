@@ -7,8 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Sube un nivel y a
 
 # Importaciones del proyecto
 from Algoritmos.domain.metodos_ordenamiento import *
-from Algoritmos.domain.utils import leer_bibtex, normalize_data, save_bibtex, buscar_duplicados, graficar_tiempos,extraer_abstracts_bibtex
-from Algoritmos.domain.requerimientos import requerimiento2, requerimiento3
+from Algoritmos.domain.utils import leer_bibtex, normalize_data, save_bibtex, buscar_duplicados, graficar_tiempos,extraer_abstracts_bibtex,graficar_dendrograma_rq5,graficar_heatmap_similitud,graficar_similitud
+from Algoritmos.domain.requerimientos import requerimiento2, requerimiento3,requerimiento5
 from Algoritmos.domain.agrupamiento.preprocesamiento import procesar_abstracts
 from Algoritmos.domain.agrupamiento.similitud import calcular_matriz_similitud
 from Algoritmos.domain.agrupamiento.dendograma import ClusteringJerarquico
@@ -17,13 +17,13 @@ from Algoritmos.domain.agrupamiento.clustering_algoritmos import (
     CompleteLinkageClustering
 )
 
-def ordenar_y_medicion(articles, metodo_instancia):
-    """Mide el tiempo de ejecución de un método de ordenamiento"""
+"""def ordenar_y_medicion(articles, metodo_instancia):
+    Mide el tiempo de ejecución de un método de ordenamiento
     start_time = time.time()
     sorted_articles = metodo_instancia.ordenar(copy.deepcopy(articles))
     end_time = time.time()
     return sorted_articles, end_time - start_time
-
+"""
 
 #MAIN CON LA IMPLEMETANCIÓN DEL REQUERIMIENTO 1 HASTA EL 3*
 """def main(folder_path, num_articles):
@@ -124,7 +124,7 @@ if __name__ == "__main__":
 """
 #MAIN SEGUIMIENTO 2
 
-
+"""""
 def main():
     ruta_bibtex = input("Ingrese la ruta completa del archivo .bib con los artículos unificados: ").strip()
 
@@ -143,6 +143,8 @@ def main():
     # Limitar a 100 por rendimiento
     if len(abstracts) > 100:
         print("⚠️ Solo se procesarán los primeros 100 abstracts por rendimiento.")
+    normalize_data(abstracts)
+    normalize_data(etiquetas)
     textos_procesados = procesar_abstracts(abstracts[:50])
     etiquetas_procesadas = etiquetas[:50]
 
@@ -167,3 +169,39 @@ def main():
 if __name__ == "__main__":
     print("=== AGRUPAMIENTO JERÁRQUICO DE ABSTRACTS ===")
     main()
+    """""
+#MAIN REQUERIMIENTO 5
+def main(file_path):
+    # Leer y normalizar datos
+    entries = leer_bibtex(file_path)
+    data = normalize_data(entries)
+
+    # Filtrar artículos sin abstract
+    data = [d for d in data if d['abstract']]
+    
+    # Limitar a los 50 primeros artículos
+    data = data[:50]
+
+    if len(data) < 2:
+        print("No hay suficientes abstracts válidos para calcular similitud.")
+        return
+
+    # Extraer abstracts
+    abstracts = [item['abstract'] for item in data]
+    etiquetas = [f"Abstract {i+1}" for i in range(len(abstracts))]
+
+    # --- SBERT ---
+    print("Calculando similitud con SBERT...")
+    sim_matrix_sbert = requerimiento5.calcular_similitud_sbert(abstracts)
+    dist_matrix_sbert = 1 - sim_matrix_sbert
+    graficar_dendrograma_rq5(dist_matrix_sbert, etiquetas, titulo="Similitud de Abstracts - SBERT")
+
+    # --- WMD ---
+    print("Calculando similitud con WMD (puede tardar unos minutos)...")
+    dist_matrix_wmd = requerimiento5.calcular_similitud_wmd(abstracts)
+    graficar_dendrograma_rq5(dist_matrix_wmd, etiquetas, titulo="Similitud de Abstracts - WMD")
+
+
+if __name__ == "__main__":
+    file_path = input("Ruta al archivo BibTeX: ")
+    main(file_path)

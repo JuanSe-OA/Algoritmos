@@ -1,8 +1,13 @@
 import os
 import bibtexparser
+import seaborn as sns
 from bibtexparser.bwriter import BibTexWriter
 from fuzzywuzzy import fuzz
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.spatial.distance import squareform
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 
 
@@ -14,14 +19,16 @@ def leer_bibtex(file_path):
 def normalize_data(entries):
     """Normaliza los datos de los artículos"""
     return [{
-        'title': e.get('title', '').strip().lower(),   # Normalizando 'title'
-        'author': e.get('author', '').strip().lower(),  # Normalizando 'author'
-        'year': e.get('year', '').strip(),              # Normalizando 'year'
-        'doi': e.get('doi', '').strip(),                # Normalizando 'doi'
-        'journal': e.get('journal', '').strip().lower(), # Normalizando 'journal'
-        'publisher': e.get('publisher', '').strip().lower(), # Normalizando 'publisher'
+        'title': e.get('title', '').strip().lower(),
+        'author': e.get('author', '').strip().lower(),
+        'year': e.get('year', '').strip(),
+        'doi': e.get('doi', '').strip(),
+        'journal': e.get('journal', '').strip().lower(),
+        'publisher': e.get('publisher', '').strip().lower(),
+        'abstract': e.get('abstract', '').strip().lower(),  # Normalizando 'abstract'
         'raw_data': e
     } for e in entries]
+
 
 def save_bibtex(filename, articles):
     """Guarda artículos en archivo BibTeX, filtrando None"""
@@ -111,4 +118,42 @@ def extraer_abstracts_bibtex(ruta):
 
     return abstracts, etiquetas
 
+# Graficar dendrograma
+def graficar_dendrograma_rq5(dist_matrix, labels, metodo='ward', titulo='Dendrograma'):
+    condensed = squareform(dist_matrix, checks=False)
+    linkage_matrix = linkage(condensed, method=metodo)
+    plt.figure(figsize=(12, 6))
+    dendrogram(linkage_matrix, labels=labels, leaf_rotation=90)
+    plt.title(titulo)
+    plt.tight_layout()
+    plt.show()
 
+import matplotlib.pyplot as plt
+
+def graficar_similitud(dist_matrix, etiquetas, titulo="Similitud de Abstracts - SBERT"):
+    n = len(dist_matrix)
+    
+    # Si deseas usar etiquetas en lugar de los índices
+    nombres = etiquetas  # En lugar de generar nombres de la forma "Abstract {i+1}"
+    
+    plt.figure(figsize=(12, 6))
+    plt.bar(nombres, [10]*n)  # Puedes usar la diagonal o cualquier otra medida si quieres variar la altura
+    plt.xticks(rotation=90)
+    plt.title(titulo)
+    plt.tight_layout()
+    plt.show()
+
+
+def graficar_heatmap_similitud(dist_matrix):
+    max_dist = np.max(dist_matrix)
+    simil_matrix = 100 * (1 - dist_matrix / max_dist)
+
+    etiquetas = [f"A{i+1}" for i in range(len(dist_matrix))]
+
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(simil_matrix, xticklabels=etiquetas, yticklabels=etiquetas, cmap="viridis", annot=True, fmt=".1f")
+    plt.title("Similitud entre Abstracts (%) - Basado en WMD")
+    plt.xlabel("Abstract")
+    plt.ylabel("Abstract")
+    plt.tight_layout()
+    plt.show()
