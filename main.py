@@ -124,7 +124,8 @@ if __name__ == "__main__":
 """
 #MAIN SEGUIMIENTO 2
 
-"""""
+
+
 def main():
     ruta_bibtex = input("Ingrese la ruta completa del archivo .bib con los artículos unificados: ").strip()
 
@@ -132,44 +133,50 @@ def main():
         print("❌ Error: La ruta al archivo .bib no es válida.")
         return
 
+    # Leer las entradas completas desde el archivo .bib
+    entradas = leer_bibtex(ruta_bibtex)
+
+    if not entradas:
+        print("❌ No se encontraron artículos en el archivo.")
+        return
+
+    print(f"✅ {len(entradas)} artículos encontrados.")
+
+    # Normalizar datos
+    datos_normalizados = normalize_data(entradas)
+
     # Extraer abstracts y etiquetas
-    abstracts, etiquetas = extraer_abstracts_bibtex(ruta_bibtex)
+    abstracts = [d['abstract'] for d in datos_normalizados if d['abstract']]
+
+
     if not abstracts:
         print("❌ No se encontraron abstracts.")
         return
 
-    print(f"✅ {len(abstracts)} abstracts encontrados.")
-
-    # Limitar a 100 por rendimiento
-    if len(abstracts) > 100:
-        print("⚠️ Solo se procesarán los primeros 100 abstracts por rendimiento.")
-    normalize_data(abstracts)
-    normalize_data(etiquetas)
-    textos_procesados = procesar_abstracts(abstracts[:50])
-    etiquetas_procesadas = etiquetas[:50]
-
     # Calcular matriz de similitud
-    matriz_similitud = calcular_matriz_similitud(textos_procesados)
+    matriz_similitud = calcular_matriz_similitud(abstracts)
 
     # Clustering jerárquico - Single Linkage
     print("\n🔗 Clustering usando SINGLE linkage")
     clustering_single = SingleLinkageClustering()
     linkage_single = clustering_single.fit(matriz_similitud)
-    clustering_s = ClusteringJerarquico(matriz_similitud, etiquetas_procesadas)
+    clustering_s = ClusteringJerarquico(matriz_similitud)
     clustering_s.graficar_dendrograma(linkage_single, "Dendrograma - Single Linkage")
 
     # Clustering jerárquico - Complete Linkage
     print("\n🔗 Clustering usando COMPLETE linkage")
     clustering_complete = CompleteLinkageClustering()
     linkage_complete = clustering_complete.fit(matriz_similitud)
-    clustering_c = ClusteringJerarquico(matriz_similitud, etiquetas_procesadas)
+    clustering_c = ClusteringJerarquico(matriz_similitud)
     clustering_c.graficar_dendrograma(linkage_complete, "Dendrograma - Complete Linkage")
 
 
 if __name__ == "__main__":
     print("=== AGRUPAMIENTO JERÁRQUICO DE ABSTRACTS ===")
     main()
-    """""
+    
+
+"""""
 #MAIN REQUERIMIENTO 5
 def main(file_path):
     # Leer y normalizar datos
@@ -205,3 +212,4 @@ def main(file_path):
 if __name__ == "__main__":
     file_path = input("Ruta al archivo BibTeX: ")
     main(file_path)
+"""""
