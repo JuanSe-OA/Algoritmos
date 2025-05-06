@@ -157,3 +157,4 @@ def graficar_heatmap_similitud(dist_matrix):
     plt.ylabel("Abstract")
     plt.tight_layout()
     plt.show()
+
