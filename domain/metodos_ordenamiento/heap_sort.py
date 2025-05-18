@@ -8,7 +8,7 @@ class HeapSort:
             # Convertimos a tupla comparable (año, autor, id único)
             heapq.heappush(heap, (
                 obtener_anio_valido(item), 
-                item['autor'], 
+                item['author'], 
                 id(item),  # Usamos id() como desempate único
                 item  # Mantenemos el artículo original
             ))

@@ -10,3 +10,5 @@ from .bitonic_sort import *
 from .radix_sort import *
 from .pigeonhole_sort import *
 from .bucket_sort import *
+from .binary_insertion_sort import BinaryInsertionSort
+

@@ -13,5 +13,5 @@ class PigeonholeSort:
 
         sorted_arr = []
         for hole in holes:
-            sorted_arr.extend(sorted(hole, key=lambda x: x['autor']))
+            sorted_arr.extend(sorted(hole, key=lambda x: x['author']))
         return sorted_arr

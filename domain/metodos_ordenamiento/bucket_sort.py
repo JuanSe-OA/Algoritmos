@@ -13,5 +13,5 @@ class BucketSort:
 
         sorted_arr = []
         for bucket in buckets:
-            sorted_arr.extend(sorted(bucket, key=lambda x: (obtener_anio_valido(x), x['autor'])))
+            sorted_arr.extend(sorted(bucket, key=lambda x: (obtener_anio_valido(x), x['author'])))
         return sorted_arr

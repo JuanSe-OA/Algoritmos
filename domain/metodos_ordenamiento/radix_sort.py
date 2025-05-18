@@ -17,4 +17,4 @@ class RadixSort:
             arr = [item for bucket in buckets for item in bucket]
             exp *= 10
 
-        return sorted(arr, key=lambda x: (obtener_anio_valido(x), x['autor']))
+        return sorted(arr, key=lambda x: (obtener_anio_valido(x), x['author']))

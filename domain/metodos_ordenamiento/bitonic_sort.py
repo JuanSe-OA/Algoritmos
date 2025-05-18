@@ -2,7 +2,7 @@ from ..utils import obtener_anio_valido
 
 class BitonicSort:
     def compare_and_swap(self, arr, i, j, direction):
-        a, b = (obtener_anio_valido(arr[i]), arr[i]['autor']), (obtener_anio_valido(arr[j]), arr[j]['autor'])
+        a, b = (obtener_anio_valido(arr[i]), arr[i]['author']), (obtener_anio_valido(arr[j]), arr[j]['author'])
         if (direction == 1 and a > b) or (direction == 0 and a < b):
             arr[i], arr[j] = arr[j], arr[i]
 

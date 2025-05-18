@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import networkx as nx
+import pandas as pd
 
 from ..utils import leer_bibtex, normalize_data
 
@@ -83,9 +84,10 @@ class requerimiento3:
 
     def analizar_frecuencias(self):
         for art in self.articulos:
-        # Accede al abstract desde raw_data
             texto = self._limpiar_texto(art['raw_data'].get("abstract", ""))
-        
+            if not texto.strip():
+                print("❌ Abstract vacío o sin contenido útil:", art.get('raw_data', {}).get('title', 'Sin título'))
+
             for categoria, variables in self.categorias_variables.items():
                 encontrados = []
 
@@ -95,7 +97,8 @@ class requerimiento3:
                         if sin in texto:
                             self.frecuencias[categoria][var] += 1
                             encontrados.append(var)
-                            break  # cuenta solo una vez por abstract
+                            break
+
 
             # co-ocurrencias
                 for i in range(len(encontrados)):
@@ -147,3 +150,12 @@ class requerimiento3:
                 f.write("Variable,Frecuencia\n")
                 for var, freq in counter.most_common():
                     f.write(f"{var},{freq}\n")
+
+    
+    def obtener_tablas_frecuencia(self):
+        tablas = {}
+        for categoria, counter in self.frecuencias.items():
+            df = pd.DataFrame(counter.items(), columns=["Variable", "Frecuencia"])
+            df = df.sort_values(by="Frecuencia", ascending=False).reset_index(drop=True)
+            tablas[categoria] = df
+        return tablas

@@ -13,7 +13,7 @@ class CombSort:
                 sorted_flag = True
 
             for i in range(len(arr) - gap):
-                if (obtener_anio_valido(arr[i]), arr[i]['autor']) > (obtener_anio_valido(arr[i + gap]), arr[i + gap]['autor']):
+                if (obtener_anio_valido(arr[i]), arr[i]['author']) > (obtener_anio_valido(arr[i + gap]), arr[i + gap]['author']):
                     arr[i], arr[i + gap] = arr[i + gap], arr[i]
                     sorted_flag = False
         return arr

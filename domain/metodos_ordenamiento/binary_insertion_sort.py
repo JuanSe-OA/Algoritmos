@@ -7,7 +7,7 @@ class BinaryInsertionSort:
             left, right = 0, i - 1
             while left <= right:
                 mid = (left + right) // 2
-                if (obtener_anio_valido(arr[mid]), arr[mid]['autor']) > (obtener_anio_valido(key), key['autor']):
+                if (obtener_anio_valido(arr[mid]), arr[mid]['author']) > (obtener_anio_valido(key), key['author']):
                     right = mid - 1
                 else:
                     left = mid + 1

@@ -7,14 +7,21 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.spatial.distance import squareform
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
 
 def leer_bibtex(file_path):
-    """Lee archivo BibTeX y devuelve entradas"""
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return bibtexparser.load(file).entries
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return bibtexparser.load(file).entries
+    except FileNotFoundError:
+        print(f"Archivo no encontrado: {file_path}")
+        return []
+    except Exception as e:
+        print(f"Error al leer el archivo: {e}")
+        return []
 
 def normalize_data(entries):
     """Normaliza los datos de los artículos"""
@@ -60,12 +67,17 @@ def buscar_duplicados(articles):
     vistos = {}
     
     for article in articles:
-        key = (article['titulo'], article['autor'])
+        title = article.get('title', '').strip().lower()
+        if not title:
+            print("Artículo sin título:", article)
+        author = article.get('author', '').strip().lower()
+        key = (title, author)
+
         # Verificar si ya existe un artículo similar
         duplicado = False
         for visto_key in vistos:
-            if fuzz.ratio(article['titulo'], visto_key[0]) > 90:
-                duplicados.append(article)  # Guardar el duplicado real
+            if fuzz.ratio(article['title'], visto_key[0]) > 90:
+                duplicados.append(article)
                 duplicado = True
                 break
         
@@ -74,6 +86,7 @@ def buscar_duplicados(articles):
             unicos.append(article)
     
     return unicos, duplicados
+
 
 def graficar_tiempos(mediciones, num_articles):
     """Genera gráfico de comparación de tiempos"""
@@ -118,6 +131,7 @@ def extraer_abstracts_bibtex(ruta):
 
     return abstracts, etiquetas
 
+"""""
 # Graficar dendrograma
 def graficar_dendrograma_rq5(dist_matrix, labels, metodo='ward', titulo='Dendrograma'):
     condensed = squareform(dist_matrix, checks=False)
@@ -127,34 +141,60 @@ def graficar_dendrograma_rq5(dist_matrix, labels, metodo='ward', titulo='Dendrog
     plt.title(titulo)
     plt.tight_layout()
     plt.show()
+"""
 
-import matplotlib.pyplot as plt
 
 def graficar_similitud(dist_matrix, etiquetas, titulo="Similitud de Abstracts - SBERT"):
     n = len(dist_matrix)
-    
-    # Si deseas usar etiquetas en lugar de los índices
-    nombres = etiquetas  # En lugar de generar nombres de la forma "Abstract {i+1}"
-    
-    plt.figure(figsize=(12, 6))
-    plt.bar(nombres, [10]*n)  # Puedes usar la diagonal o cualquier otra medida si quieres variar la altura
-    plt.xticks(rotation=90)
-    plt.title(titulo)
+    nombres = etiquetas
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(nombres, [10]*n)
+    ax.set_xticklabels(nombres, rotation=90)
+    ax.set_title(titulo)
     plt.tight_layout()
-    plt.show()
+    
+    return fig  # ✅
+
 
 
 def graficar_heatmap_similitud(dist_matrix):
     max_dist = np.max(dist_matrix)
     simil_matrix = 100 * (1 - dist_matrix / max_dist)
-
     etiquetas = [f"A{i+1}" for i in range(len(dist_matrix))]
 
-    plt.figure(figsize=(12, 10))
-    sns.heatmap(simil_matrix, xticklabels=etiquetas, yticklabels=etiquetas, cmap="viridis", annot=True, fmt=".1f")
-    plt.title("Similitud entre Abstracts (%) - Basado en WMD")
-    plt.xlabel("Abstract")
-    plt.ylabel("Abstract")
+    fig, ax = plt.subplots(figsize=(12, 10))
+    sns.heatmap(simil_matrix, xticklabels=etiquetas, yticklabels=etiquetas,
+                cmap="viridis", annot=True, fmt=".1f", ax=ax)
+    ax.set_title("Similitud entre Abstracts (%) - Basado en WMD")
+    ax.set_xlabel("Abstract")
+    ax.set_ylabel("Abstract")
     plt.tight_layout()
-    plt.show()
+
+    return fig  # ✅
+
+
+"""""
+def graficar_dendrograma_rq5(dist_matrix, labels, metodo='ward', titulo='Dendrograma'):
+    condensed = squareform(dist_matrix, checks=False)
+    linkage_matrix = linkage(condensed, method=metodo)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    dendrogram(linkage_matrix, labels=labels, leaf_rotation=90, ax=ax)
+    ax.set_title(titulo)
+    plt.tight_layout()
+    
+    return fig  # ✅
+"""
+
+def graficar_dendrograma_rq5(dist_matrix, labels, metodo='ward', titulo='Dendrograma'):
+    condensed = squareform(dist_matrix, checks=False)
+    linkage_matrix = linkage(condensed, method=metodo)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    dendrogram(linkage_matrix, labels=labels, leaf_rotation=90, ax=ax)
+    ax.set_title(titulo)
+    plt.tight_layout()
+    
+    return fig
 
